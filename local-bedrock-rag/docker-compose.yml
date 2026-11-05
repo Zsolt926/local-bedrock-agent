@@ -1,0 +1,70 @@
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: local-bedrock-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    container_name: local-bedrock-postgres
+    environment:
+      POSTGRES_DB: litellm
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-db-password-change-me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm -d litellm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  litellm:
+    image: ghcr.io/berriai/litellm:v1.90.2
+    container_name: local-bedrock-litellm
+    command:
+      - "--config"
+      - "/app/config.yaml"
+      - "--port"
+      - "4000"
+    ports:
+      - "4001:4000"
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-local-dev}
+      LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:-sk-salt-local-bedrock-change-me}
+      DATABASE_URL: postgresql://litellm:${POSTGRES_PASSWORD:-local-db-password-change-me}@db:5432/litellm
+      STORE_MODEL_IN_DB: "True"
+    volumes:
+      - ./litellm_config.yaml:/app/config.yaml:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    restart: unless-stopped
+
+  fakecloud:
+    image: ghcr.io/faiscadev/fakecloud:latest
+    container_name: local-bedrock-fakecloud
+    ports:
+      - "4566:4566"
+    environment:
+      FAKECLOUD_LOG: info
+      FAKECLOUD_BEDROCK_UPSTREAM_URL: http://litellm:4000
+      FAKECLOUD_BEDROCK_UPSTREAM_KEY: ${LITELLM_MASTER_KEY:-sk-local-dev}
+      FAKECLOUD_BEDROCK_UPSTREAM_PROTOCOL: openai
+      FAKECLOUD_BEDROCK_UPSTREAM_MODEL: local-qwen
+      FAKECLOUD_BEDROCK_UPSTREAM_MODEL_MAP: "anthropic.claude-3-haiku-20240307-v1:0=local-qwen"
+    depends_on:
+      - litellm
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+  postgres_data:

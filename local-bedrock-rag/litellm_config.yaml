@@ -1,0 +1,11 @@
+model_list:
+  - model_name: local-qwen
+    litellm_params:
+      model: ollama_chat/qwen3.5:0.8b
+      api_base: http://ollama:11434
+      api_key: ollama
+      extra_body:
+        think: false
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

@@ -1,0 +1,34 @@
+[project]
+name = "local-bedrock-rag"
+version = "0.1.0"
+description = "Local AWS Bedrock/S3 integration testing and Ollama-backed RAG with Pydantic AI"
+requires-python = ">=3.11"
+dependencies = [
+  "boto3>=1.38",
+  "botocore>=1.38",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.34",
+  "pydantic>=2.10",
+  "pydantic-settings>=2.7",
+  "sqlalchemy>=2.0",
+  "python-multipart>=0.0.20",
+  "httpx>=0.28",
+  "chromadb>=1.0",
+  "pydantic-ai-slim[openai,bedrock]>=1.0",
+  "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "pytest-cov>=6.0", "ruff>=0.9", "mypy>=1.14"]
+
+[project.scripts]
+local-bedrock = "app.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
